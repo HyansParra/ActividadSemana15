@@ -10,33 +10,27 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import org.eclipse.paho.android.service.MqttAndroidClient;
+// Imports de la librería corregida
+import info.mqtt.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Variables para la interfaz
     private EditText etMessage;
     private Button btnPublish;
     private TextView tvStatus;
 
-    // Variables MQTT
     private MqttAndroidClient client;
-    // Usamos el broker de HiveMQ como pediste
     private static final String SERVER_URI = "tcp://broker.hivemq.com:1883";
-
-    // TÓPICO CORREGIDO: Más formal para tu actividad
     private static final String TOPIC = "semana15/mqtt/test";
-
     private static final String TAG = "MQTT_CLIENT";
 
     @Override
@@ -44,15 +38,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Inicializar vistas
         etMessage = findViewById(R.id.etMessage);
         btnPublish = findViewById(R.id.btnPublish);
         tvStatus = findViewById(R.id.tvStatus);
 
-        // Configurar conexión MQTT
         connectToMqttBroker();
 
-        // Configurar botón de enviar
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -77,27 +68,24 @@ public class MainActivity extends AppCompatActivity {
             client.connect(options, null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
-                    // Conexión exitosa
                     Log.d(TAG, "Conexión Exitosa");
                     updateStatus("Conectado a HiveMQ");
-                    subscribeToTopic(); // Nos suscribimos al conectar para ver nuestros propios mensajes
+                    subscribeToTopic();
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    // Fallo de conexión
                     Log.e(TAG, "Fallo al conectar", exception);
                     updateStatus("Error de conexión");
                 }
             });
-        } catch (MqttException e) {
+        } catch (Exception e) { // <--- CAMBIADO A Exception
             e.printStackTrace();
         }
     }
 
     private void subscribeToTopic() {
         try {
-            // Suscripción QoS 0 (Al menos una vez)
             client.subscribe(TOPIC, 0, null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
@@ -110,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            // Callback para escuchar mensajes entrantes
             client.setCallback(new MqttCallback() {
                 @Override
                 public void connectionLost(Throwable cause) {
@@ -119,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
-                    // Mensaje recibido
                     String payload = new String(message.getPayload());
                     Log.d(TAG, "Mensaje Recibido: " + payload);
                     updateStatus("Recibido: " + payload);
@@ -131,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-        } catch (MqttException e) {
+        } catch (Exception e) { // <--- CAMBIADO A Exception
             e.printStackTrace();
         }
     }
@@ -140,17 +126,16 @@ public class MainActivity extends AppCompatActivity {
         try {
             byte[] encodedPayload = msg.getBytes(StandardCharsets.UTF_8);
             MqttMessage message = new MqttMessage(encodedPayload);
-            message.setQos(0); // QoS 0
+            message.setQos(0);
             client.publish(TOPIC, message);
             Log.d(TAG, "Mensaje enviado: " + msg);
-            etMessage.setText(""); // Limpiar campo
-        } catch (MqttException e) {
+            etMessage.setText("");
+        } catch (Exception e) { // <--- CAMBIADO A Exception (Esto arregla tu error rojo)
             e.printStackTrace();
             Toast.makeText(this, "Error al enviar", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // Método auxiliar para actualizar la UI desde cualquier hilo
     private void updateStatus(String text) {
         runOnUiThread(() -> tvStatus.setText(text));
     }
